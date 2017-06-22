@@ -1,0 +1,42 @@
+version: "2.2"
+
+volumes:
+  ruby:
+    driver: local
+
+services:
+  email-service:
+    image: elixir:1.4
+    entrypoint: mix
+    command: develop
+    working_dir: /code
+    volumes:
+      - ./:/code
+
+  zookeeper:
+    image: zookeeper:3.4
+    healthcheck:
+      test: echo stat | nc localhost 2181
+      interval: 1s
+      timeout: 5s
+      retries: 10
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+    healthcheck:
+      test: nc -z localhost 9092
+      interval: 1st
+      timeout: 5s
+      retries: 10
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+
+  mailcatcher:
+    image: jgiannuzzi/mailcatcher:latest
+    ports:
+      - 1080
